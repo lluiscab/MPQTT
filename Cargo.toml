@@ -1,0 +1,8 @@
+[package]
+name = "inverter"
+version = "0.1.0"
+authors = ["Lluís <lluiscab@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+crc-any = "2.3.4"
