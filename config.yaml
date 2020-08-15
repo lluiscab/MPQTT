@@ -1,0 +1,12 @@
+debug: true
+
+inverter:
+  path: /dev/inverter
+
+mqtt:
+  host: 192.168.3.3
+  port: 1883
+  username: masterpower
+  password: MasterPowerAPIMQTT
+  client_id: masterpower-RUST
+  topic: masterpower/status
