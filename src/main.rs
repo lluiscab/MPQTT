@@ -1,8 +1,6 @@
 mod mqtt_discovery;
-mod response_serialize;
 mod settings;
 use crate::mqtt_discovery::run_mqtt_discovery;
-use crate::response_serialize::{JSONQPIGSResponse, JSONQIDResponse};
 use settings::Settings;
 
 use masterpower_api::commands::qpigs::QPIGS;
@@ -10,16 +8,17 @@ use masterpower_api::inverter::Inverter;
 
 use crate::settings::MqttSettings;
 use libc::{open, O_RDWR};
-use log::{error, info};
+use log::{error, info, debug};
+use masterpower_api::commands::qid::QID;
+use masterpower_api::commands::qpiri::QPIRI;
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
+use std::thread::sleep;
 use tokio::fs::File;
 use tokio::time::Duration;
-use std::thread::sleep;
-use masterpower_api::commands::qid::QID;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -84,11 +83,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start
 
     // QID      - Serial number
-    // let serial_number = inverter.execute::<QID>(()).await?.0;
-    // let json_qid = JSONQIDResponse {
-    //     serial_number: serial_number.to_string()
-    // };
-    // publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&json_qid)?).await?;
+    let serial_number = inverter.execute::<QID>(()).await?;
+    publish_update(
+        &mqtt_client,
+        &settings.mqtt,
+        "qid",
+        serde_json::to_string(&serial_number)?,
+    )
+    .await?;
 
     // QPI      - Protocol ID
     // let protocol_id = inverter.execute::<QPI>(()).await?.0;
@@ -96,14 +98,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Update loop
     loop {
-
         // Do update
         let upd = update(&mut inverter, &mqtt_client, &settings).await;
         if let Err(error) = upd {
             publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
             error!("{}", error);
-        }
-        else {
+        } else {
             clear_error(&mqtt_client, &settings.mqtt).await?;
         }
 
@@ -117,15 +117,36 @@ async fn update(
     mqtt_client: &MQTTClient,
     settings: &Settings,
 ) -> Result<(), Box<dyn std::error::Error>> {
+
+    debug!("Starting update");
+
     // QMOD     -  Device Mode Inquiry
+
+    // QPIRI    - Device Rating Information Inquiry
+    let qpiri = inverter.execute::<QPIRI>(()).await?;
+    publish_update(
+        &mqtt_client,
+        &settings.mqtt,
+        "qpiri",
+        serde_json::to_string(&qpiri)?,
+    )
+    .await?;
 
     // QPIGS    - Device general status parameters inquiry
     let qpigs = inverter.execute::<QPIGS>(()).await?;
-    let json_qpigs: JSONQPIGSResponse = qpigs.into();
-    publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&json_qpigs)?).await?;
+    publish_update(
+        &mqtt_client,
+        &settings.mqtt,
+        "qpigs",
+        serde_json::to_string(&qpigs)?,
+    )
+    .await?;
 
     // QPIRI    - Device Rating Information Inquiry
     // QPIWS    - Device Warning Status Inquiry
+    // QFLAG    - Device flag status inquiry
+
+    debug!("Update finished without errors");
 
     Ok(())
 }
@@ -134,11 +155,11 @@ async fn publish_update(
     mqtt_client: &MQTTClient,
     mqtt: &MqttSettings,
     command: &str,
-    value: String
+    value: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut msg = PublishOpts::new(
         format!("{}/{}", mqtt.topic, command).to_string(),
-        Vec::from(value)
+        Vec::from(value),
     );
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
@@ -153,7 +174,7 @@ async fn publish_error(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut msg = PublishOpts::new(
         format!("{}/error", mqtt.topic).to_string(),
-        Vec::from(error)
+        Vec::from(error),
     );
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);

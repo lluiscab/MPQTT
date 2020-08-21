@@ -22,9 +22,258 @@ pub async fn run_mqtt_discovery(
         "Serial number",
         None,
         "slot-machine",
+        None,
     )
-        .await?;
+    .await?;
+
     // TODO: Register protocol ID
+
+    // Register QPIRI Sensors
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "grid_rating_voltage",
+        "Grid Rating Voltage",
+        Option::from(String::from("V")),
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "grid_rating_current",
+        "Grid Rating Current",
+        Option::from(String::from("A")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "ac_output_rating_voltage",
+        "AC Output Rating Voltage",
+        Option::from(String::from("V")),
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "ac_out_rating_frequency",
+        "AC Output Rating Frequency",
+        Option::from(String::from("Hz")),
+        "current-ac",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "ac_out_rating_current",
+        "AC Output Rating Current",
+        Option::from(String::from("A")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "ac_out_rating_apparent_power",
+        "AC Output Rating Apparent Power",
+        Option::from(String::from("W")),
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "ac_out_rating_active_power",
+        "AC Output Rating Active Voltage",
+        Option::from(String::from("W")),
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_rating_voltage",
+        "Battery Rating Voltage",
+        Option::from(String::from("V")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_recharge_voltage",
+        "Battery Recharge Voltage",
+        Option::from(String::from("V")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_under_voltage",
+        "Battery Under Voltage",
+        Option::from(String::from("V")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_bulk_voltage",
+        "Battery Bulk Voltage",
+        Option::from(String::from("V")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_float_voltage",
+        "Battery Float Voltage",
+        Option::from(String::from("V")),
+        "current-dc",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_redischarge_voltage",
+        "Battery Redischarge Voltage",
+        Option::from(String::from("V")),
+        "battery-negative",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "battery_type",
+        "Battery Type",
+        None,
+        "battery",
+        Option::from(false),
+    )
+    .await?;
+
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "max_ac_charging_current",
+        "Max AC Charging Current",
+        Option::from(String::from("A")),
+        "current-ac",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "max_charging_current",
+        "Max Charging Current",
+        Option::from(String::from("A")),
+        "current-ac",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "input_voltage_range",
+        "Input Voltage range",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "output_source_priority",
+        "Output Source Priority",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "charge_source_priority",
+        "Charge Source Priority",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "machine_type",
+        "Machine Type",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "topology",
+        "Topology",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
+    register_sensor(
+        client,
+        cfg,
+        "qpiri",
+        "output_mode",
+        "Output mode",
+        None,
+        "power-plug",
+        Option::from(false),
+    )
+    .await?;
 
     // Register QPIGS Sensors
     register_sensor(
@@ -35,6 +284,7 @@ pub async fn run_mqtt_discovery(
         "Grid Voltage",
         Option::from(String::from("V")),
         "power-plug",
+        None,
     )
     .await?;
     register_sensor(
@@ -45,6 +295,7 @@ pub async fn run_mqtt_discovery(
         "Grid Frequency",
         Option::from(String::from("Hz")),
         "current-ac",
+        None,
     )
     .await?;
     register_sensor(
@@ -55,6 +306,7 @@ pub async fn run_mqtt_discovery(
         "Out Voltage",
         Option::from(String::from("V")),
         "power-plug",
+        None,
     )
     .await?;
     register_sensor(
@@ -65,6 +317,7 @@ pub async fn run_mqtt_discovery(
         "Out Frequency",
         Option::from(String::from("Hz")),
         "current-ac",
+        None,
     )
     .await?;
     register_sensor(
@@ -75,6 +328,7 @@ pub async fn run_mqtt_discovery(
         "Out apparent power",
         Option::from(String::from("W")),
         "power-plug",
+        None,
     )
     .await?;
     register_sensor(
@@ -85,6 +339,7 @@ pub async fn run_mqtt_discovery(
         "Out active power",
         Option::from(String::from("W")),
         "power-plug",
+        None,
     )
     .await?;
     register_sensor(
@@ -95,6 +350,7 @@ pub async fn run_mqtt_discovery(
         "Out load percent",
         Option::from(String::from("%")),
         "brightness-percent",
+        None,
     )
     .await?;
     register_sensor(
@@ -105,6 +361,7 @@ pub async fn run_mqtt_discovery(
         "Bus Voltage",
         Option::from(String::from("V")),
         "details",
+        None,
     )
     .await?;
     register_sensor(
@@ -115,6 +372,7 @@ pub async fn run_mqtt_discovery(
         "Battery Voltage",
         Option::from(String::from("V")),
         "battery-outline",
+        None,
     )
     .await?;
     register_sensor(
@@ -125,6 +383,7 @@ pub async fn run_mqtt_discovery(
         "Battery charge current",
         Option::from(String::from("A")),
         "current-dc",
+        None,
     )
     .await?;
     register_sensor(
@@ -135,6 +394,7 @@ pub async fn run_mqtt_discovery(
         "Battery capacity",
         Option::from(String::from("%")),
         "battery-outline",
+        None,
     )
     .await?;
     register_sensor(
@@ -145,6 +405,7 @@ pub async fn run_mqtt_discovery(
         "Heat sink temperature",
         Option::from(String::from("°C")),
         "details",
+        None,
     )
     .await?;
     register_sensor(
@@ -155,6 +416,7 @@ pub async fn run_mqtt_discovery(
         "PV Input Current",
         Option::from(String::from("A")),
         "solar-power",
+        None,
     )
     .await?;
     register_sensor(
@@ -165,6 +427,7 @@ pub async fn run_mqtt_discovery(
         "PV Input Voltage",
         Option::from(String::from("V")),
         "solar-power",
+        None,
     )
     .await?;
     register_sensor(
@@ -175,6 +438,7 @@ pub async fn run_mqtt_discovery(
         "Battery SCC Voltage",
         Option::from(String::from("V")),
         "current-dc",
+        None,
     )
     .await?;
     register_sensor(
@@ -185,6 +449,7 @@ pub async fn run_mqtt_discovery(
         "Battery discharge current",
         Option::from(String::from("A")),
         "battery-negative",
+        None,
     )
     .await?;
 
@@ -209,7 +474,7 @@ struct SensorDiscoveryParams {
     state_topic: String,
     icon: String,
     device: SensorDiscoveryDevice,
-    force_update: bool
+    force_update: bool,
 }
 
 #[derive(Serialize, Debug)]
@@ -246,7 +511,7 @@ async fn register_error_sensor(
         state_topic: format!("{}/{}", cfg.topic, "error").to_string(),
         icon: "mdi:hammer-wrench".parse().unwrap(),
         device: get_device_hassio(&cfg),
-        force_update: true
+        force_update: true,
     };
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(
@@ -271,6 +536,7 @@ async fn register_sensor(
     name: &str,
     unit: Option<String>,
     icon: &str,
+    mut update: Option<bool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let unique_id = format!("{}_{}", cfg.discovery.node_name, id)
         .parse()
@@ -284,7 +550,7 @@ async fn register_sensor(
         state_topic: format!("{}/{}", cfg.topic, command).to_string(),
         icon: format!("mdi:{}", icon).to_string(),
         device: get_device_hassio(&cfg),
-        force_update: true
+        force_update: *update.get_or_insert(true),
     };
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(
