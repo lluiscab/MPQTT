@@ -7,6 +7,15 @@ pub struct InverterSettings {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct MqttDiscovery {
+    pub enabled: bool,
+    pub prefix: String,
+    pub node_name: String,
+    pub device_name: String,
+    pub device_id: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct MqttSettings {
     pub host: String,
     pub port: u16,
@@ -14,6 +23,7 @@ pub struct MqttSettings {
     pub password: String,
     pub client_id: String,
     pub topic: String,
+    pub discovery: MqttDiscovery,
 }
 
 #[derive(Debug, Deserialize)]

@@ -10,3 +10,9 @@ mqtt:
   password: MasterPowerAPIMQTT
   client_id: masterpower-RUST
   topic: masterpower/status
+  discovery:
+    enabled: true
+    prefix: homeassistant
+    node_name: masterpower
+    device_name: MasterPower
+    device_id: masterpower-1

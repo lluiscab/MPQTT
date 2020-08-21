@@ -3,6 +3,12 @@ use masterpower_api::commands::qpigs::DeviceChargingStatus::{
 };
 use masterpower_api::commands::qpigs::QPIGSResponse;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde_derive::Serialize;
+
+#[derive(Serialize, Debug)]
+pub struct JSONQIDResponse {
+    pub(crate) serial_number: String
+}
 
 pub struct JSONQPIGSResponse(QPIGSResponse);
 
