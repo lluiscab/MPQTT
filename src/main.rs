@@ -2,15 +2,16 @@ mod mqtt_discovery;
 mod settings;
 use crate::mqtt_discovery::run_mqtt_discovery;
 use settings::Settings;
-
-use masterpower_api::commands::qpigs::QPIGS;
-use masterpower_api::inverter::Inverter;
-
 use crate::settings::MqttSettings;
-use libc::{open, O_RDWR};
-use log::{error, info, debug};
+
+use masterpower_api::inverter::Inverter;
 use masterpower_api::commands::qid::QID;
+use masterpower_api::commands::qpi::QPI;
 use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qpigs::QPIGS;
+
+use libc::{open, O_RDWR};
+use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
@@ -36,18 +37,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pretty_env_logger::init();
     }
     // Create MQTT Connection
-    info!(
-        "Connecting to MQTT Broker at: {}:{}",
-        settings.mqtt.host, settings.mqtt.port
-    );
+    info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
     let mut builder = mqtt_async_client::client::Client::builder();
     let mut mqtt_client = builder
         .set_host(settings.mqtt.host.clone())
         .set_port(settings.mqtt.port)
         .set_username(Option::from(settings.mqtt.username.clone()))
-        .set_password(Option::from(
-            settings.mqtt.password.to_string().as_bytes().to_vec(),
-        ))
+        .set_password(Option::from(settings.mqtt.password.to_string().as_bytes().to_vec()))
         .set_client_id(Option::from(settings.mqtt.client_id.clone()))
         .set_connect_retry_delay(Duration::from_secs(1))
         .set_keep_alive(KeepAlive::from_secs(5))
@@ -79,22 +75,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create inverter instance
     let mut inverter = Inverter::from_stream(stream.unwrap());
 
-    // TODO: Also loop this?
     // Start
 
     // QID      - Serial number
     let serial_number = inverter.execute::<QID>(()).await?;
-    publish_update(
-        &mqtt_client,
-        &settings.mqtt,
-        "qid",
-        serde_json::to_string(&serial_number)?,
-    )
-    .await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
 
     // QPI      - Protocol ID
-    // let protocol_id = inverter.execute::<QPI>(()).await?.0;
-    // println!("Protocol ID: {}", protocol_id);
+    let protocol_id = inverter.execute::<QPI>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
 
     // Update loop
     loop {
@@ -112,37 +101,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn update(
-    inverter: &mut Inverter<File>,
-    mqtt_client: &MQTTClient,
-    settings: &Settings,
-) -> Result<(), Box<dyn std::error::Error>> {
-
+async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
     debug!("Starting update");
 
     // QMOD     -  Device Mode Inquiry
 
     // QPIRI    - Device Rating Information Inquiry
     let qpiri = inverter.execute::<QPIRI>(()).await?;
-    publish_update(
-        &mqtt_client,
-        &settings.mqtt,
-        "qpiri",
-        serde_json::to_string(&qpiri)?,
-    )
-    .await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
 
     // QPIGS    - Device general status parameters inquiry
     let qpigs = inverter.execute::<QPIGS>(()).await?;
-    publish_update(
-        &mqtt_client,
-        &settings.mqtt,
-        "qpigs",
-        serde_json::to_string(&qpigs)?,
-    )
-    .await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
 
-    // QPIRI    - Device Rating Information Inquiry
     // QPIWS    - Device Warning Status Inquiry
     // QFLAG    - Device flag status inquiry
 
@@ -151,45 +122,24 @@ async fn update(
     Ok(())
 }
 
-async fn publish_update(
-    mqtt_client: &MQTTClient,
-    mqtt: &MqttSettings,
-    command: &str,
-    value: String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut msg = PublishOpts::new(
-        format!("{}/{}", mqtt.topic, command).to_string(),
-        Vec::from(value),
-    );
+async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: &str, value: String) -> Result<(), Box<dyn std::error::Error>> {
+    let mut msg = PublishOpts::new(format!("{}/{}", mqtt.topic, command).to_string(), Vec::from(value));
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
     mqtt_client.publish(&msg).await?;
     Ok(())
 }
 
-async fn publish_error(
-    mqtt_client: &MQTTClient,
-    mqtt: &MqttSettings,
-    error: String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut msg = PublishOpts::new(
-        format!("{}/error", mqtt.topic).to_string(),
-        Vec::from(error),
-    );
+async fn publish_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings, error: String) -> Result<(), Box<dyn std::error::Error>> {
+    let mut msg = PublishOpts::new(format!("{}/error", mqtt.topic).to_string(), Vec::from(error));
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
     mqtt_client.publish(&msg).await?;
     Ok(())
 }
 
-async fn clear_error(
-    mqtt_client: &MQTTClient,
-    mqtt: &MqttSettings,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut msg = PublishOpts::new(
-        format!("{}/error", mqtt.topic).to_string(),
-        "".to_string().as_bytes().to_vec(),
-    );
+async fn clear_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings) -> Result<(), Box<dyn std::error::Error>> {
+    let mut msg = PublishOpts::new(format!("{}/error", mqtt.topic).to_string(), "".to_string().as_bytes().to_vec());
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
     mqtt_client.publish(&msg).await?;
@@ -197,14 +147,7 @@ async fn clear_error(
 }
 
 fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-    let fd = unsafe {
-        open(
-            CString::new(path.as_ref().as_os_str().as_bytes())
-                .unwrap()
-                .as_ptr(),
-            O_RDWR,
-        )
-    };
+    let fd = unsafe { open(CString::new(path.as_ref().as_os_str().as_bytes()).unwrap().as_ptr(), O_RDWR) };
     if fd < 0 {
         return Err(std::io::Error::last_os_error());
     }

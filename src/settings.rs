@@ -37,7 +37,7 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let mut settings = Config::new();
 
-        settings.merge(File::with_name("config"))?;
+        settings.merge(File::with_name("config.yaml"))?;
         settings.try_into()
     }
 }
