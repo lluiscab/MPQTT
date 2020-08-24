@@ -1,0 +1,10 @@
+[Unit]
+Description=MPQTT
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/mpqtt
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

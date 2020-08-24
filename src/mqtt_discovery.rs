@@ -97,9 +97,9 @@ fn get_device_hassio(cfg: &MqttSettings) -> SensorDiscoveryDevice {
     SensorDiscoveryDevice {
         name: cfg.discovery.device_name.clone(),
         identifiers: [cfg.discovery.device_id.clone()],
-        model: "MasterPower QPI".parse().unwrap(),
-        manufacturer: "MasterPower QPI".parse().unwrap(),
-        sw_version: "0.1.0".parse().unwrap(),
+        model: env!("CARGO_PKG_NAME").to_ascii_uppercase().parse().unwrap(),
+        manufacturer: env!("CARGO_PKG_NAME").to_ascii_uppercase().parse().unwrap(),
+        sw_version: env!("CARGO_PKG_VERSION").parse().unwrap(),
     }
 }
 

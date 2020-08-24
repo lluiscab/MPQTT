@@ -1,8 +1,24 @@
 [package]
-name = "inverter"
+name = "mpqtt"
 version = "0.1.0"
 authors = ["Lluís <lluiscab@gmail.com>"]
 edition = "2018"
+description = "Data extractor for Axpert / MasterPower inverters with MQTT and HomeAssistant integration"
+license = "MIT"
+
+[package.metadata.deb]
+section = "utilities"
+assets = [
+    ["target/release/mpqtt", "usr/bin/", "755"],
+    ["debian/config.yaml", "/etc/mpqtt/config.yaml", "644"],
+]
+features = ["build-for-deb"]
+conf-files = ["/etc/mpqtt/config.yaml"]
+maintainer-scripts = "debian/"
+systemd-units = {}
+
+[features]
+build-for-deb = []
 
 [dependencies]
 crc-any = "2.3.4"

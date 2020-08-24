@@ -1,6 +1,12 @@
 use config::{Config, ConfigError, File};
 use serde_derive::Deserialize;
 
+#[cfg(not(feature="build-for-deb"))]
+const CONFIG_PATH: &'static str = "config.yaml";
+
+#[cfg(feature="build-for-deb")]
+const CONFIG_PATH: &'static str = "/etc/mpqtt/config.yaml";
+
 #[derive(Debug, Deserialize)]
 pub struct InverterSettings {
     pub path: String,
@@ -37,7 +43,8 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let mut settings = Config::new();
 
-        settings.merge(File::with_name("config.yaml"))?;
+        settings.merge(File::with_name(CONFIG_PATH))?;
+
         settings.try_into()
     }
 }

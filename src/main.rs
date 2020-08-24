@@ -23,6 +23,9 @@ use tokio::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    println!("Starting {} version {}", env!("CARGO_PKG_NAME").to_ascii_uppercase(), env!("CARGO_PKG_VERSION"));
+
     // Load configuration
     let settings = Settings::new();
     if let Err(e) = settings {
@@ -36,6 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::set_var("RUST_LOG", "error,inverter=trace,masterpower_api=trace");
         pretty_env_logger::init();
     }
+
     // Create MQTT Connection
     info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
     let mut builder = mqtt_async_client::client::Client::builder();
@@ -76,6 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut inverter = Inverter::from_stream(stream.unwrap());
 
     // Start
+    // TODO: Detect hassio start / stop and rerun these commands and discovery
 
     // QID      - Serial number
     let serial_number = inverter.execute::<QID>(()).await?;
