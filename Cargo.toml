@@ -6,6 +6,9 @@ edition = "2018"
 description = "Data extractor for Axpert / MasterPower inverters with MQTT and HomeAssistant integration"
 license = "MIT"
 
+[features]
+build-for-deb = []
+
 [package.metadata.deb]
 section = "utilities"
 assets = [
@@ -17,8 +20,9 @@ conf-files = ["/etc/mpqtt/config.yaml"]
 maintainer-scripts = "debian/"
 systemd-units = {}
 
-[features]
-build-for-deb = []
+[package.metadata.release]
+disable-publish = true
+no-dev-version = true
 
 [dependencies]
 crc-any = "2.3.4"
