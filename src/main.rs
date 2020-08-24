@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_host(settings.mqtt.host.clone())
         .set_port(settings.mqtt.port)
         .set_username(Option::from(settings.mqtt.username.clone()))
-        .set_password(Option::from(settings.mqtt.password.to_string().as_bytes().to_vec()))
+        .set_password(Option::from(settings.mqtt.password.as_bytes().to_vec()))
         .set_client_id(Option::from(settings.mqtt.client_id.clone()))
         .set_connect_retry_delay(Duration::from_secs(1))
         .set_keep_alive(KeepAlive::from_secs(5))
@@ -58,10 +58,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     mqtt_client.connect().await?;
     info!("Connected to MQTT Broker");
 
-    // Run MQTT Discovery if enabled
-    if settings.mqtt.discovery.enabled {
-        run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
-    }
+    // Run MQTT Discovery
+    run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
 
     // Open inverter tty device
     let stream = raw_open(settings.inverter.path.clone());
