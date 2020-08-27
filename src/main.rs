@@ -6,10 +6,10 @@ use settings::Settings;
 
 use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qpi::QPI;
-use masterpower_api::commands::qvfw::QVFW;
-use masterpower_api::commands::qvfw2::QVFW2;
 use masterpower_api::commands::qpigs::QPIGS;
 use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qvfw::QVFW;
+use masterpower_api::commands::qvfw2::QVFW2;
 use masterpower_api::inverter::Inverter;
 
 use libc::{open, O_RDWR};
@@ -22,8 +22,6 @@ use std::path::Path;
 use std::thread::sleep;
 use tokio::fs::File;
 use tokio::time::Duration;
-use serde_derive::Serialize;
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -94,9 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Publish as single v1 / v2 object
     // QVFW     - Software version 1
     let software_version_1 = inverter.execute::<QVFW>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&MQTTQVFW {
-        v1: format!("{}.{}", software_version_1.major, software_version_1.minor).to_string()
-    })?).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
 
     // QVFW2     - Software version 2
     let software_version_2 = inverter.execute::<QVFW2>(()).await?;
@@ -137,16 +133,6 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     debug!("Update finished without errors");
 
     Ok(())
-}
-
-#[derive(Serialize)]
-struct MQTTQVFW {
-    v1: String
-}
-
-#[derive(Serialize)]
-struct MQTTQVFW2 {
-    v2: String
 }
 
 async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: &str, value: String) -> Result<(), Box<dyn std::error::Error>> {

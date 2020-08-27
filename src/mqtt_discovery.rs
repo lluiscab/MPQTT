@@ -17,12 +17,15 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     register_sensor(client, cfg, "qpi", "protocol_id", "Protocol ID", None, "slot-machine", None).await?;
 
     // Register software version1
-    register_sensor(client, cfg, "qvfw", "v1", "CPU Firmware Version", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw", "major", "CPU Firmware Version Major", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw", "minor", "CPU Firmware Version Minor", None, "update", None).await?;
 
-    // Register software version2
-    register_sensor(client, cfg, "qvfw2", "v2", "CPU Firmware Version 2", None, "update", None).await?;
+    // Register software version 22
+    register_sensor(client, cfg, "qvfw2", "major", "CPU Firmware Version 2 Major", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw2", "minor", "CPU Firmware Version 2 Minor", None, "update", None).await?;
 
-    // TODO: Register QMOD
+    // Register QMOD
+    register_sensor(client, cfg, "qmod", "mode", "Device mode", None, "information-outline", None).await?;
 
     // Register QPIRI Sensors
     register_sensor(client, cfg, "qpiri", "grid_rating_voltage", "Grid Rating Voltage", Some("V".to_string()), "power-plug", None).await?;
@@ -127,7 +130,7 @@ async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<()
 }
 
 async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id: &str, name: &str, unit: Option<String>, icon: &str, mut force_update: Option<bool>) -> Result<(), Box<dyn std::error::Error>> {
-    let unique_id = format!("{}_{}", cfg.discovery.node_name, id).to_string().replace(".", "_");
+    let unique_id = format!("{}_{}_{}", cfg.discovery.node_name, command, id).to_string().replace(".", "_");
 
     info!("Registering sensor {}", unique_id);
     let params = SensorDiscoveryParams {
@@ -141,7 +144,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
         force_update: *force_update.get_or_insert(false),
     };
     let params_string = serde_json::to_string(&params)?;
-    let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}/config", cfg.discovery.prefix, cfg.discovery.node_name, id.replace(".", "_")).to_string(), params_string.as_bytes().to_vec());
+    let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}_{}/config", cfg.discovery.prefix, cfg.discovery.node_name, command, id.replace(".", "_")).to_string(), params_string.as_bytes().to_vec());
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(true);
     client.publish(&msg).await?;
