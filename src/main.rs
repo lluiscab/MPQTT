@@ -5,9 +5,11 @@ use crate::settings::MqttSettings;
 use settings::Settings;
 
 use masterpower_api::commands::qid::QID;
+use masterpower_api::commands::qmod::QMOD;
 use masterpower_api::commands::qpi::QPI;
 use masterpower_api::commands::qpigs::QPIGS;
 use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qpiws::QPIWS;
 use masterpower_api::commands::qvfw::QVFW;
 use masterpower_api::commands::qvfw2::QVFW2;
 use masterpower_api::inverter::Inverter;
@@ -15,11 +17,13 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
+use serde_derive::Serialize;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
 use std::thread::sleep;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tokio::fs::File;
 use tokio::time::Duration;
 
@@ -80,23 +84,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut inverter = Inverter::from_stream(stream.unwrap());
 
     // Start
-
-    // QID      - Serial number
-    let serial_number = inverter.execute::<QID>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
-
-    // QPI      - Protocol ID
-    let protocol_id = inverter.execute::<QPI>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
-
-    // TODO: Publish as single v1 / v2 object
-    // QVFW     - Software version 1
-    let software_version_1 = inverter.execute::<QVFW>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
-
-    // QVFW2     - Software version 2
-    let software_version_2 = inverter.execute::<QVFW2>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qvfw2", serde_json::to_string(&software_version_2)?).await?;
+    let init_res = init(&mut inverter, &mqtt_client, &settings).await;
+    if let Err(error) = init_res {
+        publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
+        error!("{}", error);
+        std::process::exit(1);
+    }
 
     // Update loop
     loop {
@@ -114,10 +107,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
+    // Get initial values
+
+    // QID      - Serial number
+    let serial_number = inverter.execute::<QID>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
+
+    // QPI      - Protocol ID
+    let protocol_id = inverter.execute::<QPI>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
+
+    // QVFW     - Software version 1
+    let software_version_1 = inverter.execute::<QVFW>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
+
+    // QVFW2     - Software version 2
+    let software_version_2 = inverter.execute::<QVFW2>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw2", serde_json::to_string(&software_version_2)?).await?;
+
+    Ok(())
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+struct UpdateTime {
+    pub timestamp: u64,
+    pub execution_time: u128,
+}
+
 async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
+    // Start update
     debug!("Starting update");
+    let start = Instant::now();
 
     // QMOD     -  Device Mode Inquiry
+    let qmod = inverter.execute::<QMOD>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qmod", serde_json::to_string(&qmod)?).await?;
 
     // QPIRI    - Device Rating Information Inquiry
     let qpiri = inverter.execute::<QPIRI>(()).await?;
@@ -128,9 +153,23 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
 
     // QPIWS    - Device Warning Status Inquiry
-    // QFLAG    - Device flag status inquiry
+    let qpiws = inverter.execute::<QPIWS>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpiws", serde_json::to_string(&qpiws)?).await?;
 
+    // Report update completed
     debug!("Update finished without errors");
+    let time = start.elapsed().as_millis();
+    info!("Update took {}ms", time);
+    publish_update(
+        &mqtt_client,
+        &settings.mqtt,
+        "update",
+        serde_json::to_string(&UpdateTime {
+            timestamp: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+            execution_time: time,
+        })?,
+    )
+    .await?;
 
     Ok(())
 }

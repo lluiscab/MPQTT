@@ -10,6 +10,10 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     // Register error sensor
     register_error_sensor(client, cfg).await?;
 
+    // Register update sensor
+    register_sensor(client, cfg, "update", "timestamp", "Last update", None, "calendar", None).await?;
+    register_sensor(client, cfg, "update", "execution_time", "Last update execution time", Some("ms".to_string()), "clock-outline", None).await?;
+
     // Register QID Response
     register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine", None).await?;
 
@@ -72,7 +76,36 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     register_sensor(client, cfg, "qpigs", "device_status.active_load", "Active load", None, "power", None).await?;
 
     // TODO: Register QPIWS response
-    // TODO: Register QFLAG response
+    register_sensor(client, cfg, "qpigs", "device_status.active_load", "Active load", None, "power", None).await?;
+
+    register_sensor(client, cfg, "qpiws", "inverter_fault", "Inverter fault", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "bus_over", "Bus over", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "bus_under", "Bus under", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "bus_soft_fail", "Bus soft fail", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "line_fail", "Line fail", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "opv_short", "OPV Short", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "inverter_voltage_too_low", "Inverter voltage too low", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "inverter_voltage_too_high", "Inverter voltage too high", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "over_temperature", "Over temperature", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "fan_locked", "Fan locked", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "battery_voltage_high", "Battery voltage high", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "battery_low_alarm", "Battery low alarm", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "battery_under_shutdown", "Battery under shutdown", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "over_load", "Over load", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "eeprom_fault", "EEPROM Fault", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "inverter_over_current", "Inverter over current", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "inverter_soft_fail", "Inverter soft fail", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "self_test_fail", "Self test fail", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "op_dc_voltage_over", "OP DC Voltage over", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "bat_open", "Bat open", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "current_sensor_fail", "Current sensor fail", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "battery_short", "Battery short", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "power_limit", "Power limit", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "pv_voltage_high", "PV Voltage high", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "mppt_overload_fault", "MPPT Overload fault", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "mppt_overload_warning", "MPPT Overload warning", None, "alert", None).await?;
+    register_sensor(client, cfg, "qpiws", "battery_too_low_to_charge", "Battery too low to charge", None, "alert", None).await?;
+
     Ok(())
 }
 
@@ -131,6 +164,7 @@ async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<()
 
 async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id: &str, name: &str, unit: Option<String>, icon: &str, mut force_update: Option<bool>) -> Result<(), Box<dyn std::error::Error>> {
     let unique_id = format!("{}_{}_{}", cfg.discovery.node_name, command, id).to_string().replace(".", "_");
+    let topic = format!("{}/{}", cfg.topic, command).to_string();
 
     info!("Registering sensor {}", unique_id);
     let params = SensorDiscoveryParams {
@@ -138,7 +172,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
         name: format!("{} - {}", cfg.discovery.device_name, name).to_string(),
         unit_of_measurement: unit,
         value_template: Some(format!("{{{{ value_json.{} }}}}", id).to_string()),
-        state_topic: format!("{}/{}", cfg.topic, command).to_string(),
+        state_topic: topic,
         icon: format!("mdi:{}", icon).to_string(),
         device: get_device_hassio(&cfg),
         force_update: *force_update.get_or_insert(false),
