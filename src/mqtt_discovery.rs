@@ -118,7 +118,7 @@ async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<()
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}/config", cfg.discovery.prefix, cfg.discovery.node_name, "error").to_string(), params_string.as_bytes().to_vec());
     msg.set_qos(QoS::AtLeastOnce);
-    msg.set_retain(false);
+    msg.set_retain(true);
     client.publish(&msg).await?;
     Ok(())
 }
@@ -140,7 +140,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}/config", cfg.discovery.prefix, cfg.discovery.node_name, id.replace(".", "_")).to_string(), params_string.as_bytes().to_vec());
     msg.set_qos(QoS::AtLeastOnce);
-    msg.set_retain(false);
+    msg.set_retain(true);
     client.publish(&msg).await?;
     Ok(())
 }
