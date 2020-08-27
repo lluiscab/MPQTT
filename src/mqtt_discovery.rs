@@ -11,39 +11,44 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     register_error_sensor(client, cfg).await?;
 
     // Register QID Response
-    register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine", Some(false)).await?;
+    register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine", None).await?;
 
     // Register QPI Response
-    register_sensor(client, cfg, "qpi", "protocol_id", "Protocol ID", None, "slot-machine", Some(false)).await?;
+    register_sensor(client, cfg, "qpi", "protocol_id", "Protocol ID", None, "slot-machine", None).await?;
 
-    // TODO: Register software version1
-    // TODO: Register software version2
+    // Register software version1
+    register_sensor(client, cfg, "qvfw", "major", "CPU Firmware Version Major", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw", "minor", "CPU Firmware Version Minor", None, "update", None).await?;
+
+    // Register software version2
+    register_sensor(client, cfg, "qvfw2", "major", "CPU Firmware Version 2 Major", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw2", "minor", "CPU Firmware Version 2 Minor", None, "update", None).await?;
 
     // TODO: Register QMOD
 
     // Register QPIRI Sensors
-    register_sensor(client, cfg, "qpiri", "grid_rating_voltage", "Grid Rating Voltage", Some("V".to_string()), "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "grid_rating_current", "Grid Rating Current", Some("A".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "ac_output_rating_voltage", "AC Output Rating Voltage", Some("V".to_string()), "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "ac_out_rating_frequency", "AC Output Rating Frequency", Some("Hz".to_string()), "current-ac", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "ac_out_rating_current", "AC Output Rating Current", Some("A".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "ac_out_rating_apparent_power", "AC Output Rating Apparent Power", Some("W".to_string()), "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "ac_out_rating_active_power", "AC Output Rating Active Voltage", Some("W".to_string()), "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_rating_voltage", "Battery Rating Voltage", Some("V".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_recharge_voltage", "Battery Recharge Voltage", Some("V".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_under_voltage", "Battery Under Voltage", Some("V".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_bulk_voltage", "Battery Bulk Voltage", Some("V".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_float_voltage", "Battery Float Voltage", Some("V".to_string()), "current-dc", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_redischarge_voltage", "Battery Redischarge Voltage", Some("V".to_string()), "battery-negative", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "battery_type", "Battery Type", None, "battery", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "max_ac_charging_current", "Max AC Charging Current", Some("A".to_string()), "current-ac", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "max_charging_current", "Max Charging Current", Some("A".to_string()), "current-ac", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "input_voltage_range", "Input Voltage range", None, "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "output_source_priority", "Output Source Priority", None, "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "charge_source_priority", "Charge Source Priority", None, "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "machine_type", "Machine Type", None, "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "topology", "Topology", None, "power-plug", Some(false)).await?;
-    register_sensor(client, cfg, "qpiri", "output_mode", "Output mode", None, "power-plug", Some(false)).await?;
+    register_sensor(client, cfg, "qpiri", "grid_rating_voltage", "Grid Rating Voltage", Some("V".to_string()), "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "grid_rating_current", "Grid Rating Current", Some("A".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "ac_output_rating_voltage", "AC Output Rating Voltage", Some("V".to_string()), "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "ac_out_rating_frequency", "AC Output Rating Frequency", Some("Hz".to_string()), "current-ac", None).await?;
+    register_sensor(client, cfg, "qpiri", "ac_out_rating_current", "AC Output Rating Current", Some("A".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "ac_out_rating_apparent_power", "AC Output Rating Apparent Power", Some("W".to_string()), "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "ac_out_rating_active_power", "AC Output Rating Active Voltage", Some("W".to_string()), "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_rating_voltage", "Battery Rating Voltage", Some("V".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_recharge_voltage", "Battery Recharge Voltage", Some("V".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_under_voltage", "Battery Under Voltage", Some("V".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_bulk_voltage", "Battery Bulk Voltage", Some("V".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_float_voltage", "Battery Float Voltage", Some("V".to_string()), "current-dc", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_redischarge_voltage", "Battery Redischarge Voltage", Some("V".to_string()), "battery-negative", None).await?;
+    register_sensor(client, cfg, "qpiri", "battery_type", "Battery Type", None, "battery", None).await?;
+    register_sensor(client, cfg, "qpiri", "max_ac_charging_current", "Max AC Charging Current", Some("A".to_string()), "current-ac", None).await?;
+    register_sensor(client, cfg, "qpiri", "max_charging_current", "Max Charging Current", Some("A".to_string()), "current-ac", None).await?;
+    register_sensor(client, cfg, "qpiri", "input_voltage_range", "Input Voltage range", None, "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "output_source_priority", "Output Source Priority", None, "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "charge_source_priority", "Charge Source Priority", None, "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "machine_type", "Machine Type", None, "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "topology", "Topology", None, "power-plug", None).await?;
+    register_sensor(client, cfg, "qpiri", "output_mode", "Output mode", None, "power-plug", None).await?;
 
     // Register QPIGS Sensors
     register_sensor(client, cfg, "qpigs", "grid_voltage", "Grid Voltage", Some("V".to_string()), "power-plug", None).await?;
@@ -113,7 +118,7 @@ async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<()
         state_topic: format!("{}/{}", cfg.topic, "error").to_string(),
         icon: "mdi:hammer-wrench".parse().unwrap(),
         device: get_device_hassio(&cfg),
-        force_update: true,
+        force_update: false,
     };
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}/config", cfg.discovery.prefix, cfg.discovery.node_name, "error").to_string(), params_string.as_bytes().to_vec());
@@ -123,7 +128,7 @@ async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<()
     Ok(())
 }
 
-async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id: &str, name: &str, unit: Option<String>, icon: &str, mut update: Option<bool>) -> Result<(), Box<dyn std::error::Error>> {
+async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id: &str, name: &str, unit: Option<String>, icon: &str, mut force_update: Option<bool>) -> Result<(), Box<dyn std::error::Error>> {
     let unique_id = format!("{}_{}", cfg.discovery.node_name, id).to_string().replace(".", "_");
 
     info!("Registering sensor {}", unique_id);
@@ -135,7 +140,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
         state_topic: format!("{}/{}", cfg.topic, command).to_string(),
         icon: format!("mdi:{}", icon).to_string(),
         device: get_device_hassio(&cfg),
-        force_update: *update.get_or_insert(true),
+        force_update: *force_update.get_or_insert(false),
     };
     let params_string = serde_json::to_string(&params)?;
     let mut msg = PublishOpts::new(format!("{}/sensor/{}/{}/config", cfg.discovery.prefix, cfg.discovery.node_name, id.replace(".", "_")).to_string(), params_string.as_bytes().to_vec());

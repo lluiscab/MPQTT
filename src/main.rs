@@ -1,14 +1,16 @@
 mod mqtt_discovery;
 mod settings;
 use crate::mqtt_discovery::run_mqtt_discovery;
-use settings::Settings;
 use crate::settings::MqttSettings;
+use settings::Settings;
 
-use masterpower_api::inverter::Inverter;
 use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qpi::QPI;
-use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qvfw::QVFW;
+use masterpower_api::commands::qvfw2::QVFW2;
 use masterpower_api::commands::qpigs::QPIGS;
+use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::inverter::Inverter;
 
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
@@ -23,7 +25,6 @@ use tokio::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     println!("Starting {} version {}", env!("CARGO_PKG_NAME").to_ascii_uppercase(), env!("CARGO_PKG_VERSION"));
 
     // Load configuration
@@ -87,6 +88,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // QPI      - Protocol ID
     let protocol_id = inverter.execute::<QPI>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
+
+    // QVFW     - Software version 1
+    let software_version_1 = inverter.execute::<QVFW>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
+
+    // QVFW2     - Software version 2
+    let software_version_2 = inverter.execute::<QVFW2>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw2", serde_json::to_string(&software_version_2)?).await?;
 
     // Update loop
     loop {

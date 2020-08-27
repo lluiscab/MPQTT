@@ -1,10 +1,10 @@
 use config::{Config, ConfigError, File};
 use serde_derive::Deserialize;
 
-#[cfg(not(feature="build-for-deb"))]
+#[cfg(not(feature = "build-for-deb"))]
 const CONFIG_PATH: &'static str = "config.yaml";
 
-#[cfg(feature="build-for-deb")]
+#[cfg(feature = "build-for-deb")]
 const CONFIG_PATH: &'static str = "/etc/mpqtt/config.yaml";
 
 #[derive(Debug, Deserialize)]
