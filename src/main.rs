@@ -22,6 +22,8 @@ use std::path::Path;
 use std::thread::sleep;
 use tokio::fs::File;
 use tokio::time::Duration;
+use serde_derive::Serialize;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,7 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Enable debugging
     if settings.debug {
-        std::env::set_var("RUST_LOG", "error,inverter=trace,masterpower_api=trace");
+        println!("Enabled debug output");
+        std::env::set_var("RUST_LOG", "error,mpqtt=trace,masterpower_api=trace");
         pretty_env_logger::init();
     }
 
@@ -79,7 +82,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut inverter = Inverter::from_stream(stream.unwrap());
 
     // Start
-    // TODO: Detect hassio start / stop and rerun these commands and discovery
 
     // QID      - Serial number
     let serial_number = inverter.execute::<QID>(()).await?;
@@ -89,9 +91,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let protocol_id = inverter.execute::<QPI>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
 
+    // TODO: Publish as single v1 / v2 object
     // QVFW     - Software version 1
     let software_version_1 = inverter.execute::<QVFW>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&MQTTQVFW {
+        v1: format!("{}.{}", software_version_1.major, software_version_1.minor).to_string()
+    })?).await?;
 
     // QVFW2     - Software version 2
     let software_version_2 = inverter.execute::<QVFW2>(()).await?;
@@ -132,6 +137,16 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     debug!("Update finished without errors");
 
     Ok(())
+}
+
+#[derive(Serialize)]
+struct MQTTQVFW {
+    v1: String
+}
+
+#[derive(Serialize)]
+struct MQTTQVFW2 {
+    v2: String
 }
 
 async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: &str, value: String) -> Result<(), Box<dyn std::error::Error>> {

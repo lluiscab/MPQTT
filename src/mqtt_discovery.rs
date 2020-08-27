@@ -17,12 +17,10 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     register_sensor(client, cfg, "qpi", "protocol_id", "Protocol ID", None, "slot-machine", None).await?;
 
     // Register software version1
-    register_sensor(client, cfg, "qvfw", "major", "CPU Firmware Version Major", None, "update", None).await?;
-    register_sensor(client, cfg, "qvfw", "minor", "CPU Firmware Version Minor", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw", "v1", "CPU Firmware Version", None, "update", None).await?;
 
     // Register software version2
-    register_sensor(client, cfg, "qvfw2", "major", "CPU Firmware Version 2 Major", None, "update", None).await?;
-    register_sensor(client, cfg, "qvfw2", "minor", "CPU Firmware Version 2 Minor", None, "update", None).await?;
+    register_sensor(client, cfg, "qvfw2", "v2", "CPU Firmware Version 2", None, "update", None).await?;
 
     // TODO: Register QMOD
 
