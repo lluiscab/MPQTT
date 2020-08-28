@@ -129,12 +129,6 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
     Ok(())
 }
 
-#[derive(Debug, PartialEq, Serialize)]
-struct UpdateTime {
-    pub timestamp: u64,
-    pub execution_time: u128,
-}
-
 async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
     // Start update
     debug!("Starting update");
@@ -160,16 +154,6 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     debug!("Update finished without errors");
     let time = start.elapsed().as_millis();
     info!("Update took {}ms", time);
-    publish_update(
-        &mqtt_client,
-        &settings.mqtt,
-        "update",
-        serde_json::to_string(&UpdateTime {
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
-            execution_time: time,
-        })?,
-    )
-    .await?;
 
     Ok(())
 }

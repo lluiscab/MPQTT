@@ -10,10 +10,6 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     // Register error sensor
     register_error_sensor(client, cfg).await?;
 
-    // Register update sensor
-    register_sensor(client, cfg, "update", "timestamp", "Last update", None, "calendar", None).await?;
-    register_sensor(client, cfg, "update", "execution_time", "Last update execution time", Some("ms".to_string()), "clock-outline", None).await?;
-
     // Register QID Response
     register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine", None).await?;
 
