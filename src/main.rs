@@ -17,13 +17,12 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
-use serde_derive::Serialize;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
 use std::thread::sleep;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Instant};
 use tokio::fs::File;
 use tokio::time::Duration;
 
