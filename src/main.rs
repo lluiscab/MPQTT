@@ -1,3 +1,5 @@
+#![warn(clippy::all)]
+
 mod mqtt_discovery;
 mod settings;
 use crate::mqtt_discovery::run_mqtt_discovery;
@@ -17,12 +19,11 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
-use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
 use std::thread::sleep;
-use std::time::{Instant};
+use std::time::Instant;
 use tokio::fs::File;
 use tokio::time::Duration;
 
@@ -182,7 +183,7 @@ async fn clear_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings) -> Result<()
 }
 
 fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-    let fd = unsafe { open(CString::new(path.as_ref().as_os_str().as_bytes()).unwrap().as_ptr(), O_RDWR) };
+    let fd = unsafe { open(path.as_ref().as_os_str().as_bytes().as_ptr() as *const i8, O_RDWR) };
     if fd < 0 {
         return Err(std::io::Error::last_os_error());
     }
