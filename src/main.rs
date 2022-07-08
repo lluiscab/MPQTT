@@ -10,10 +10,12 @@ use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qmod::QMOD;
 use masterpower_api::commands::qpi::QPI;
 use masterpower_api::commands::qpigs::QPIGS;
-use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qpgs0::QPGS0;
+// use masterpower_api::commands::qpgs::
+// use masterpower_api::commands::qpiri::QPIRI;
 use masterpower_api::commands::qpiws::QPIWS;
 use masterpower_api::commands::qvfw::QVFW;
-use masterpower_api::commands::qvfw2::QVFW2;
+// use masterpower_api::commands::qvfw2::QVFW2;
 use masterpower_api::inverter::Inverter;
 
 use libc::{open, O_RDWR};
@@ -103,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Sleep 1 sec
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_secs(10));
     }
 }
 
@@ -122,10 +124,6 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
     let software_version_1 = inverter.execute::<QVFW>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
 
-    // QVFW2     - Software version 2
-    let software_version_2 = inverter.execute::<QVFW2>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qvfw2", serde_json::to_string(&software_version_2)?).await?;
-
     Ok(())
 }
 
@@ -139,8 +137,10 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     publish_update(&mqtt_client, &settings.mqtt, "qmod", serde_json::to_string(&qmod)?).await?;
 
     // QPIRI    - Device Rating Information Inquiry
-    let qpiri = inverter.execute::<QPIRI>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
+    // let qpiri = inverter.execute::<QPIRI>(()).await?;
+    // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
+    
+    let qpgs0 = inverter.execute::<QPGS0>(()).await?;
 
     // QPIGS    - Device general status parameters inquiry
     let qpigs = inverter.execute::<QPIGS>(()).await?;
@@ -183,7 +183,7 @@ async fn clear_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings) -> Result<()
 }
 
 fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-    let fd = unsafe { open(path.as_ref().as_os_str().as_bytes().as_ptr() as *const i8, O_RDWR) };
+    let fd = unsafe { open(path.as_ref().as_os_str().as_bytes().as_ptr() as *const u8, O_RDWR) };
     if fd < 0 {
         return Err(std::io::Error::last_os_error());
     }
