@@ -9,8 +9,8 @@ use settings::Settings;
 use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qmod::QMOD;
 use masterpower_api::commands::qpi::QPI;
-use masterpower_api::commands::qpigs::QPIGS;
-use masterpower_api::commands::qpgs::QPGS;
+// use masterpower_api::commands::qpigs::QPIGS;
+use masterpower_api::commands::qpgs::{QPGS0,QPGS1};
 // use masterpower_api::commands::qpgs::
 // use masterpower_api::commands::qpiri::QPIRI;
 use masterpower_api::commands::qpiws::QPIWS;
@@ -140,7 +140,10 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // let qpiri = inverter.execute::<QPIRI>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
     
-    // inverter.execute::<QPGS>(()).await?;
+    inverter.execute::<QPGS0>(()).await?;
+    sleep(Duration::from_secs(10));
+    inverter.execute::<QPGS1>(()).await?;
+    sleep(Duration::from_secs(10));
 
     // QPIGS    - Device general status parameters inquiry
     // let qpigs = inverter.execute::<QPIGS>(()).await?;
