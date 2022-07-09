@@ -29,7 +29,7 @@ no-dev-version = true
 crc-any = "2.3.4"
 libc = "0.2.72"
 tokio = { version = "0.2.21", features = ["full"] }
-masterpower-api = { git = "https://github.com/wolffshots/masterpower-api" }
+masterpower-api = { git = "https://github.com/wolffshots/masterpower-api", branch="dev" }
 bytes = "0.5.6"
 pretty_env_logger = "0.4.0"
 config = "0.9"

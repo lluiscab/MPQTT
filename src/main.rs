@@ -10,7 +10,7 @@ use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qmod::QMOD;
 use masterpower_api::commands::qpi::QPI;
 use masterpower_api::commands::qpigs::QPIGS;
-use masterpower_api::commands::qpgs0::QPGS0;
+use masterpower_api::commands::qpgs::QPGS;
 // use masterpower_api::commands::qpgs::
 // use masterpower_api::commands::qpiri::QPIRI;
 use masterpower_api::commands::qpiws::QPIWS;
@@ -140,11 +140,11 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // let qpiri = inverter.execute::<QPIRI>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
     
-    let qpgs0 = inverter.execute::<QPGS0>(()).await?;
+    // inverter.execute::<QPGS>(()).await?;
 
     // QPIGS    - Device general status parameters inquiry
-    let qpigs = inverter.execute::<QPIGS>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
+    // let qpigs = inverter.execute::<QPIGS>(()).await?;
+    // publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
 
     // QPIWS    - Device Warning Status Inquiry
     let qpiws = inverter.execute::<QPIWS>(()).await?;
