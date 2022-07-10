@@ -10,8 +10,7 @@ use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qmod::QMOD;
 use masterpower_api::commands::qpi::QPI;
 // use masterpower_api::commands::qpigs::QPIGS;
-use masterpower_api::commands::qpgs::{QPGS0,QPGS1};
-// use masterpower_api::commands::qpgs::
+use masterpower_api::commands::qpgs::{QPGS0, QPGS1, QPGS2};
 // use masterpower_api::commands::qpiri::QPIRI;
 use masterpower_api::commands::qpiws::QPIWS;
 use masterpower_api::commands::qvfw::QVFW;
@@ -76,7 +75,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(error) = stream {
         publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
         error!("Could not open inverter communication {}", error);
-        std::process::exit(1);
+        todo!("implement retrying on file not found or couldn't open with warn! before error!");
+        // std::process::exit(1);
     }
 
     // Clear previous errors
@@ -90,7 +90,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(error) = init_res {
         publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
         error!("{}", error);
-        std::process::exit(1);
+        todo!("implement retrying on file not found or couldn't open with warn! before error!");
+        // std::process::exit(1);
     }
 
     // Update loop
@@ -104,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             clear_error(&mqtt_client, &settings.mqtt).await?;
         }
 
-        // Sleep 1 sec
+        // Sleep between updates
         sleep(Duration::from_secs(10));
     }
 }
@@ -113,9 +114,14 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
     // Get initial values
 
     // QID      - Serial number
-    let serial_number = inverter.execute::<QID>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
-
+    match inverter.execute::<QID>(()).await {
+        Ok(serial_number) => {
+            publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
+        }
+        Err(serial_number_error) => {
+            error!("{}", serial_number_error);
+        }
+    };
     // QPI      - Protocol ID
     let protocol_id = inverter.execute::<QPI>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpi", serde_json::to_string(&protocol_id)?).await?;
@@ -139,11 +145,13 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // QPIRI    - Device Rating Information Inquiry
     // let qpiri = inverter.execute::<QPIRI>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
-    
-    inverter.execute::<QPGS0>(()).await?;
-    sleep(Duration::from_secs(10));
-    inverter.execute::<QPGS1>(()).await?;
-    sleep(Duration::from_secs(10));
+
+    let qpgs0 = inverter.execute::<QPGS0>(()).await?;
+    let qpgs1 = inverter.execute::<QPGS1>(()).await?;
+    let qpgs2 = inverter.execute::<QPGS2>(()).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
 
     // QPIGS    - Device general status parameters inquiry
     // let qpigs = inverter.execute::<QPIGS>(()).await?;
