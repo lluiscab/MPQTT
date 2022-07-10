@@ -128,9 +128,9 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
         register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharge_current", &format!("Battery Discharge Current - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
 
         // manually calculated - not reported from qpgs directly
-        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_power", &format!("PV Input Power - Invertor {}", index), Some("kWh".to_string()), "solar-panel").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_power", &format!("Battery Charging Power - Invertor {}", index), Some("kWh".to_string()), "battery-positive").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharging_power", &format!("Battery Discharging Power - Invertor {}", index), Some("kWh".to_string()), "battery-negative").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_power", &format!("PV Input Power - Invertor {}", index), Some("kW".to_string()), "solar-panel").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_power", &format!("Battery Charging Power - Invertor {}", index), Some("kW".to_string()), "battery-positive").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharging_power", &format!("Battery Discharging Power - Invertor {}", index), Some("kW".to_string()), "battery-negative").await?;
     }
 
     // Register QPIWS response
