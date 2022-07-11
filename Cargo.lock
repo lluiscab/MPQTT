@@ -393,7 +393,7 @@ dependencies = [
 [[package]]
 name = "masterpower-api"
 version = "0.1.0"
-source = "git+https://github.com/wolffshots/masterpower-api?branch=dev#91a21a00ea4e24084f3f06c52251bf8324675b01"
+source = "git+https://github.com/wolffshots/masterpower-api?branch=dev#0cc5e317aa76185632d28ce764ee556dfb1f50d4"
 dependencies = [
  "bytes 0.5.6",
  "crc-any",
