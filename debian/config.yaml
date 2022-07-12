@@ -1,10 +1,10 @@
 debug: true
 
 inverter:
-  path: /dev/serial/by-path/platform-3f980000.usb-usb-0:1:1.0-port0 
+  path: /dev/hidraw0
 
 mqtt:
-  host: 192.168.88.124
+  host: localhost
   port: 1883
   username: mpqtt
   password: mpqtt

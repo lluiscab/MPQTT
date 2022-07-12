@@ -164,7 +164,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // Report update completed
     debug!("Update finished without errors");
     let time = start.elapsed().as_millis();
-    info!("Update took {}ms", time);
+    println!("Update took {}ms", time);
 
     Ok(())
 }
