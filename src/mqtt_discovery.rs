@@ -2,13 +2,16 @@ use crate::settings::MqttSettings;
 use mqtt_async_client::client::{Client, Publish as PublishOpts, QoS};
 use serde_derive::Serialize;
 
-use log::info;
+use log::{info, debug};
 
 pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(), Box<dyn std::error::Error>> {
     info!("Running MQTT Discovery");
 
     // Register error sensor
     register_error_sensor(client, cfg).await?;
+
+    // Register stats sensors
+    register_sensor(client, cfg, "stats", "last_update_duration", "Last Update Duration", Some("ms".to_string()), "clock").await?;
 
     // Register QID Response
     register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine").await?;
@@ -75,62 +78,62 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     assert_ne!(inverter_count, 0);
     for index in 0..=inverter_count {
         // Register QPGS Sensors
-        register_sensor(client, cfg, &format!("qpgs{}", index), "other_units_connected", &format!("Other Units Connected - Invertor {}", index), None, "power-plug").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "serial_number", &format!("Serial Number - Invertor {}", index), None, "details").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "operation_mode", &format!("Operation Mode - Invertor {}", index), None, "slot-machine").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "fault_code", &format!("Fault Code - Invertor {}", index), None, "alert").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_input_voltage", &format!("AC Input Voltage - Invertor {}", index), Some("Vac".to_string()), "power-plug").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_input_frequency", &format!("AC Input Frequency - Invertor {}", index), Some("Hz".to_string()), "current-ac").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_voltage", &format!("AC Output Voltage - Invertor {}", index), Some("Vac".to_string()), "power-plug").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_frequency", &format!("AC Output Frequency - Invertor {}", index), Some("Hz".to_string()), "current-ac").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_apparent_power", &format!("AC Output Apparent Power - Invertor {}", index), Some("VA".to_string()), "power-plug").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_active_power", &format!("AC Output Active Power - Invertor {}", index), Some("W".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "other_units_connected", &format!("Other Units Connected - Inverter {}", index), None, "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "serial_number", &format!("Serial Number - Inverter {}", index), None, "details").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "operation_mode", &format!("Operation Mode - Inverter {}", index), None, "slot-machine").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "fault_code", &format!("Fault Code - Inverter {}", index), None, "alert").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_input_voltage", &format!("AC Input Voltage - Inverter {}", index), Some("Vac".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_input_frequency", &format!("AC Input Frequency - Inverter {}", index), Some("Hz".to_string()), "current-ac").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_voltage", &format!("AC Output Voltage - Inverter {}", index), Some("Vac".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_frequency", &format!("AC Output Frequency - Inverter {}", index), Some("Hz".to_string()), "current-ac").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_apparent_power", &format!("AC Output Apparent Power - Inverter {}", index), Some("VA".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_active_power", &format!("AC Output Active Power - Inverter {}", index), Some("W".to_string()), "power-plug").await?;
         register_sensor(
             client,
             cfg,
             &format!("qpgs{}", index),
             "percentage_of_nominal_output_power",
-            &format!("Percentage Of Nominal Output Power - Invertor {}", index),
+            &format!("Percentage Of Nominal Output Power - Inverter {}", index),
             Some("% of single inverter".to_string()),
             "power-plug",
         )
         .await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_voltage", &format!("Battery Votlage - Invertor {}", index), Some("Vdc".to_string()), "battery").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_current", &format!("Battery Charging Current - Invertor {}", index), Some("Adc".to_string()), "battery-positive").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_approx_state_of_charge", &format!("Battery State of Charge - Invertor {}", index), Some("%".to_string()), "battery-outline").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_voltage", &format!("PV Input Voltage - Invertor {}", index), Some("Vdc".to_string()), "solar-power").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "total_charging_current", &format!("Total Charging Current - Invertor {}", index), Some("Adc".to_string()), "battery-positive").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "total_ac_output_apparent_power", &format!("Total AC Output Apparent Power - Invertor {}", index), Some("VA".to_string()), "power-plug").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "total_ac_output_active_power", &format!("Total AC Output Active Power - Invertor {}", index), Some("W".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_voltage", &format!("Battery Votlage - Inverter {}", index), Some("Vdc".to_string()), "battery").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_current", &format!("Battery Charging Current - Inverter {}", index), Some("Adc".to_string()), "battery-positive").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_approx_state_of_charge", &format!("Battery State of Charge - Inverter {}", index), Some("%".to_string()), "battery-outline").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_voltage", &format!("PV Input Voltage - Inverter {}", index), Some("Vdc".to_string()), "solar-power").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "total_charging_current", &format!("Total Charging Current - Inverter {}", index), Some("Adc".to_string()), "battery-positive").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "total_ac_output_apparent_power", &format!("Total AC Output Apparent Power - Inverter {}", index), Some("VA".to_string()), "power-plug").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "total_ac_output_active_power", &format!("Total AC Output Active Power - Inverter {}", index), Some("W".to_string()), "power-plug").await?;
         register_sensor(
             client,
             cfg,
             &format!("qpgs{}", index),
             "total_percentage_of_nominal_output_power",
-            &format!("Total Percentage Of Output Power - Invertor {}", index),
+            &format!("Total Percentage Of Output Power - Inverter {}", index),
             Some("% of inverters".to_string()),
             "power-plug",
         )
         .await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.mppt_active", &format!("MPPT Active - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_charging", &format!("AC Charging - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.solar_charging", &format!("Solar Charging - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.battery_status", &format!("Battery Status - Invertor {}", index), None, "battery-heart-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_input", &format!("AC Input - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_output", &format!("AC Output - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.reserved_bit", &format!("Reserved - Invertor {}", index), None, "order-bool-ascending-variant").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_mode", &format!("AC Output Mode - Invertor {}", index), None, "slot-machine").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_source_priority", &format!("Battery Charging Source - Invertor {}", index), None, "ev-station").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "max_charging_current_set", &format!("Max Charging Current Set - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "max_charging_current_possible", &format!("Max Charging Current Possible - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "max_ac_charging_current_set", &format!("Max AC Charging Current Set - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_current", &format!("PV Input Current - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharge_current", &format!("Battery Discharge Current - Invertor {}", index), Some("Adc".to_string()), "current-dc").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.mppt_active", &format!("MPPT Active - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_charging", &format!("AC Charging - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.solar_charging", &format!("Solar Charging - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.battery_status", &format!("Battery Status - Inverter {}", index), None, "battery-heart-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_input", &format!("AC Input - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.ac_output", &format!("AC Output - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "inverter_status.reserved_bit", &format!("Reserved - Inverter {}", index), None, "order-bool-ascending-variant").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "ac_output_mode", &format!("AC Output Mode - Inverter {}", index), None, "slot-machine").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_source_priority", &format!("Battery Charging Source - Inverter {}", index), None, "ev-station").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "max_charging_current_set", &format!("Max Charging Current Set - Inverter {}", index), Some("Adc".to_string()), "current-dc").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "max_charging_current_possible", &format!("Max Charging Current Possible - Inverter {}", index), Some("Adc".to_string()), "current-dc").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "max_ac_charging_current_set", &format!("Max AC Charging Current Set - Inverter {}", index), Some("Adc".to_string()), "current-dc").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_current", &format!("PV Input Current - Inverter {}", index), Some("Adc".to_string()), "current-dc").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharge_current", &format!("Battery Discharge Current - Inverter {}", index), Some("Adc".to_string()), "current-dc").await?;
 
         // manually calculated - not reported from qpgs directly
-        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_power", &format!("PV Input Power - Invertor {}", index), Some("W".to_string()), "solar-panel").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_power", &format!("Battery Charging Power - Invertor {}", index), Some("W".to_string()), "battery-positive").await?;
-        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharging_power", &format!("Battery Discharging Power - Invertor {}", index), Some("W".to_string()), "battery-negative").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "pv_input_power", &format!("PV Input Power - Inverter {}", index), Some("W".to_string()), "solar-panel").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_charging_power", &format!("Battery Charging Power - Inverter {}", index), Some("W".to_string()), "battery-positive").await?;
+        register_sensor(client, cfg, &format!("qpgs{}", index), "battery_discharging_power", &format!("Battery Discharging Power - Inverter {}", index), Some("W".to_string()), "battery-negative").await?;
     }
 
     // Register QPIWS response
@@ -204,7 +207,7 @@ fn get_device_hassio(cfg: &MqttSettings) -> SensorDiscoveryDevice {
 }
 
 async fn register_error_sensor(client: &Client, cfg: &MqttSettings) -> Result<(), Box<dyn std::error::Error>> {
-    info!("Registering error sensor");
+    debug!("Registering error sensor");
     let params = SensorDiscoveryParams {
         unique_id: format!("{}_last_error", cfg.discovery.node_name).parse().unwrap(),
         name: format!("{} - Last error", cfg.discovery.device_name).to_string(),
@@ -229,10 +232,10 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
     let unique_id = format!("{}_{}_{}", cfg.discovery.node_name, command, id).to_string().replace(".", "_");
     let topic = format!("{}/{}", cfg.topic, command).to_string();
 
-    info!("Registering sensor {}", unique_id);
+    debug!("Registering sensor {}", unique_id);
     let state_class = match unit {
         Some(_) => Some(String::from("measurement")),
-        None => None
+        None => None,
     };
 
     let device_class = match unit {
@@ -247,7 +250,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
             "°C" | "°F" => Some(String::from("temperature")),
             _ => None,
         },
-        None => None
+        None => None,
     };
 
     let params = SensorDiscoveryParams {

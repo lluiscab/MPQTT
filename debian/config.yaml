@@ -1,4 +1,5 @@
 debug: true
+low_priority_delay: 26
 
 inverter:
   path: /dev/hidraw0

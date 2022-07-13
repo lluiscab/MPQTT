@@ -20,6 +20,7 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
+use serde_derive::Serialize;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
@@ -39,13 +40,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
     let settings = settings.unwrap();
+    let low_priority_delay = settings.low_priority_delay;
 
     // Enable debugging
     if settings.debug {
-        println!("Enabled debug output");
-        std::env::set_var("RUST_LOG", "error,mpqtt=trace,masterpower_api=trace");
-        pretty_env_logger::init();
+        std::env::set_var("RUST_LOG", "warn,mpqtt=trace,masterpower_api=trace");
+        info!("Enabled debug output");
+    } else {
+        std::env::set_var("RUST_LOG", "error,mpqtt=info,masterpower_api=info");
     }
+    pretty_env_logger::init();
 
     // Create MQTT Connection
     info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
@@ -106,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Sleep between updates
-        sleep(Duration::from_secs(10));
+        sleep(Duration::from_secs(low_priority_delay));
     }
 }
 
@@ -130,6 +134,8 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
     let software_version_1 = inverter.execute::<QVFW>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qvfw", serde_json::to_string(&software_version_1)?).await?;
 
+    debug!("Completed init commands");
+
     Ok(())
 }
 
@@ -145,14 +151,14 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // QPIRI    - Device Rating Information Inquiry
     // let qpiri = inverter.execute::<QPIRI>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
-
+    sleep(Duration::from_secs(2));
     let qpgs0 = inverter.execute::<QPGS0>(()).await?;
     let qpgs1 = inverter.execute::<QPGS1>(()).await?;
     let qpgs2 = inverter.execute::<QPGS2>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
-
+    sleep(Duration::from_secs(2));
     // QPIGS    - Device general status parameters inquiry
     // let qpigs = inverter.execute::<QPIGS>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
@@ -162,9 +168,10 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     publish_update(&mqtt_client, &settings.mqtt, "qpiws", serde_json::to_string(&qpiws)?).await?;
 
     // Report update completed
-    debug!("Update finished without errors");
     let time = start.elapsed().as_millis();
-    println!("Update took {}ms", time);
+    info!("Update took {}ms", time);
+    let stats = StatsSensor { last_update_duration: time };
+    publish_update(&mqtt_client, &settings.mqtt, "stats", serde_json::to_string(&stats)?).await?;
 
     Ok(())
 }
@@ -201,4 +208,9 @@ fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
 
     let std_file = unsafe { std::fs::File::from_raw_fd(fd) };
     Ok(File::from_std(std_file))
+}
+
+#[derive(Serialize, Debug)]
+struct StatsSensor {
+    last_update_duration: u128,
 }
