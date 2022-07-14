@@ -34,7 +34,7 @@ pub struct MqttSettings {
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     pub debug: bool,
-    pub low_priority_delay: i16,
+    pub low_priority_delay: u64,
     pub inverter: InverterSettings,
     pub mqtt: MqttSettings,
 }

@@ -29,6 +29,9 @@ use std::time::Instant;
 use tokio::fs::File;
 use tokio::time::Duration;
 
+use rand::thread_rng;
+use rand::Rng;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting {} version {}", env!("CARGO_PKG_NAME").to_ascii_uppercase(), env!("CARGO_PKG_VERSION"));
@@ -54,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create MQTT Connection
     info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
     let mut builder = mqtt_async_client::client::Client::builder();
-    let mut mqtt_client = builder
+    let mut mqtt_client = match builder
         .set_host(settings.mqtt.host.clone())
         .set_port(settings.mqtt.port)
         .set_username(Option::from(settings.mqtt.username.clone()))
@@ -64,7 +67,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_keep_alive(KeepAlive::from_secs(5))
         .set_operation_timeout(Duration::from_secs(5))
         .set_automatic_connect(true)
-        .build()?;
+        .build() {
+            Ok(val) => val, 
+            Err(err) => {
+                error!("Problem with MQTT client builder: {}", err);
+                std::process::exit(0);
+            }
+    };
 
     mqtt_client.connect().await?;
     info!("Connected to MQTT Broker");
@@ -93,7 +102,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let init_res = init(&mut inverter, &mqtt_client, &settings).await;
     if let Err(error) = init_res {
         publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
-        error!("{}", error);
+        error!("Error initialising inverter: {}", error);
         todo!("implement retrying on file not found or couldn't open with warn! before error!");
         // std::process::exit(1);
     }
@@ -104,7 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let upd = update(&mut inverter, &mqtt_client, &settings).await;
         if let Err(error) = upd {
             publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
-            error!("{}", error);
+            error!("Error publishing error: {}", error);
         } else {
             clear_error(&mqtt_client, &settings.mqtt).await?;
         }
@@ -123,7 +132,7 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
             publish_update(&mqtt_client, &settings.mqtt, "qid", serde_json::to_string(&serial_number)?).await?;
         }
         Err(serial_number_error) => {
-            error!("{}", serial_number_error);
+            error!("Error fetching serial number: {}", serial_number_error);
         }
     };
     // QPI      - Protocol ID
@@ -151,14 +160,16 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // QPIRI    - Device Rating Information Inquiry
     // let qpiri = inverter.execute::<QPIRI>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
-    sleep(Duration::from_secs(2));
+    
+    sleep(Duration::from_secs(1));
     let qpgs0 = inverter.execute::<QPGS0>(()).await?;
     let qpgs1 = inverter.execute::<QPGS1>(()).await?;
     let qpgs2 = inverter.execute::<QPGS2>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
-    sleep(Duration::from_secs(2));
+    sleep(Duration::from_secs(3));
+    
     // QPIGS    - Device general status parameters inquiry
     // let qpigs = inverter.execute::<QPIGS>(()).await?;
     // publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
