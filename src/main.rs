@@ -165,7 +165,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             let qpigs = inverter.execute::<QPIGS>(()).await?;
             publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
         }
-        inner_time = inner_start.elapsed().as_millis();
+        inner_time = inner_start.elapsed().as_millis(); // calculate average for this for the stats sensor
         info!("Partial update took {}ms", inner_time);
         sleep(Duration::from_secs(settings.inner_delay));
     }
