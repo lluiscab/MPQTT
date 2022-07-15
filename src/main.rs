@@ -8,13 +8,14 @@ use settings::Settings;
 
 use masterpower_api::commands::qid::QID;
 use masterpower_api::commands::qmod::QMOD;
-use masterpower_api::commands::qpi::QPI;
-// use masterpower_api::commands::qpigs::QPIGS;
 use masterpower_api::commands::qpgs::{QPGS0, QPGS1, QPGS2};
-// use masterpower_api::commands::qpiri::QPIRI;
+use masterpower_api::commands::qpi::QPI;
+use masterpower_api::commands::qpigs::QPIGS;
+use masterpower_api::commands::qpiri::QPIRI;
 use masterpower_api::commands::qpiws::QPIWS;
 use masterpower_api::commands::qvfw::QVFW;
 // use masterpower_api::commands::qvfw2::QVFW2;
+// use masterpower_api::commands::qvfw3::QVFW3;
 use masterpower_api::inverter::Inverter;
 
 use libc::{open, O_RDWR};
@@ -29,21 +30,18 @@ use std::time::Instant;
 use tokio::fs::File;
 use tokio::time::Duration;
 
-use rand::thread_rng;
-use rand::Rng;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting {} version {}", env!("CARGO_PKG_NAME").to_ascii_uppercase(), env!("CARGO_PKG_VERSION"));
 
     // Load configuration
-    let settings = Settings::new();
-    if let Err(e) = settings {
-        println!("Error loading configuration file: {}", e);
-        std::process::exit(1);
-    }
-    let settings = settings.unwrap();
-    let low_priority_delay = settings.low_priority_delay;
+    let settings = match Settings::new() {
+        Ok(settings) => settings,
+        Err(e) => {
+            println!("Error loading configuration file: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     // Enable debugging
     if settings.debug {
@@ -67,12 +65,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_keep_alive(KeepAlive::from_secs(5))
         .set_operation_timeout(Duration::from_secs(5))
         .set_automatic_connect(true)
-        .build() {
-            Ok(val) => val, 
-            Err(err) => {
-                error!("Problem with MQTT client builder: {}", err);
-                std::process::exit(0);
-            }
+        .build()
+    {
+        Ok(val) => val,
+        Err(err) => {
+            error!("Problem with MQTT client builder: {}", err);
+            std::process::exit(0);
+        }
     };
 
     mqtt_client.connect().await?;
@@ -81,22 +80,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run MQTT Discovery
     run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
 
-    // Open inverter tty device
-    let stream = raw_open(settings.inverter.path.clone());
-
-    // Handle inverter error
-    if let Err(error) = stream {
-        publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
-        error!("Could not open inverter communication {}", error);
-        todo!("implement retrying on file not found or couldn't open with warn! before error!");
-        // std::process::exit(1);
-    }
+    // Open inverter tty device - wrap open call in for loop with timeout and a break on success
+    let stream = match raw_open(settings.inverter.path.clone()) {
+        Ok(stream) => stream,
+        Err(err) => {
+            // Handle error opening inverter
+            publish_error(&mqtt_client, &settings.mqtt, err.to_string()).await?; // wrap in loop to retry publish on fails
+            error!("Could not open inverter communication {}", err);
+            todo!("implement retrying on file not found or couldn't open with warn! before error!");
+        }
+    };
 
     // Clear previous errors
-    clear_error(&mqtt_client, &settings.mqtt).await?;
+    clear_error(&mqtt_client, &settings.mqtt).await?; // wrap in loop to retry publish on fails
 
     // Create inverter instance
-    let mut inverter = Inverter::from_stream(stream.unwrap());
+    let mut inverter = Inverter::from_stream(stream);
 
     // Start
     let init_res = init(&mut inverter, &mqtt_client, &settings).await;
@@ -109,7 +108,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Update loop
     loop {
-        // Do update
         let upd = update(&mut inverter, &mqtt_client, &settings).await;
         if let Err(error) = upd {
             publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
@@ -117,9 +115,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             clear_error(&mqtt_client, &settings.mqtt).await?;
         }
-
-        // Sleep between updates
-        sleep(Duration::from_secs(low_priority_delay));
     }
 }
 
@@ -150,40 +145,53 @@ async fn init(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings:
 
 async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
     // Start update
-    debug!("Starting update");
-    let start = Instant::now();
+    debug!("Starting new update");
+    let outer_start = Instant::now();
+    let mut inner_time: u128 = 0;
+    for _ in 0..settings.inner_iterations {
+        let inner_start = Instant::now();
+        if settings.debug {
+            // spare the connection some bandwidth in general use
+            let qpgs0 = inverter.execute::<QPGS0>(()).await?;
+            publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
+        }
+        // main update loop for phocos
+        let qpgs1 = inverter.execute::<QPGS1>(()).await?;
+        let qpgs2 = inverter.execute::<QPGS2>(()).await?;
+        publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
+        publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
+        // QPIGS    - Device general status parameters inquiry
+        if settings.mode != String::from("phocos") {
+            let qpigs = inverter.execute::<QPIGS>(()).await?;
+            publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
+        }
+        inner_time = inner_start.elapsed().as_millis();
+        info!("Partial update took {}ms", inner_time);
+        sleep(Duration::from_secs(settings.inner_delay));
+    }
 
     // QMOD     -  Device Mode Inquiry
     let qmod = inverter.execute::<QMOD>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qmod", serde_json::to_string(&qmod)?).await?;
-
     // QPIRI    - Device Rating Information Inquiry
-    // let qpiri = inverter.execute::<QPIRI>(()).await?;
-    // publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
-    
-    sleep(Duration::from_secs(1));
-    let qpgs0 = inverter.execute::<QPGS0>(()).await?;
-    let qpgs1 = inverter.execute::<QPGS1>(()).await?;
-    let qpgs2 = inverter.execute::<QPGS2>(()).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
-    publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
-    sleep(Duration::from_secs(3));
-    
-    // QPIGS    - Device general status parameters inquiry
-    // let qpigs = inverter.execute::<QPIGS>(()).await?;
-    // publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
-
+    if settings.mode != String::from("phocos") {
+        // I think it could be implemented for phocos, just needs some work
+        let qpiri = inverter.execute::<QPIRI>(()).await?;
+        publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
+    }
     // QPIWS    - Device Warning Status Inquiry
     let qpiws = inverter.execute::<QPIWS>(()).await?;
     publish_update(&mqtt_client, &settings.mqtt, "qpiws", serde_json::to_string(&qpiws)?).await?;
 
     // Report update completed
-    let time = start.elapsed().as_millis();
-    info!("Update took {}ms", time);
-    let stats = StatsSensor { last_update_duration: time };
+    let outer_time = outer_start.elapsed().as_millis();
+    info!("Full update took {}ms", outer_time);
+    let stats = StatsSensor {
+        outer_update_duration: outer_time,
+        inner_update_duration: inner_time,
+    };
     publish_update(&mqtt_client, &settings.mqtt, "stats", serde_json::to_string(&stats)?).await?;
-
+    sleep(Duration::from_secs(settings.outer_delay));
     Ok(())
 }
 
@@ -223,5 +231,6 @@ fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
 
 #[derive(Serialize, Debug)]
 struct StatsSensor {
-    last_update_duration: u128,
+    outer_update_duration: u128,
+    inner_update_duration: u128,
 }

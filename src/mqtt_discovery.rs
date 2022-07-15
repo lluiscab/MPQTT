@@ -2,7 +2,7 @@ use crate::settings::MqttSettings;
 use mqtt_async_client::client::{Client, Publish as PublishOpts, QoS};
 use serde_derive::Serialize;
 
-use log::{info, debug};
+use log::{debug, info};
 
 pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(), Box<dyn std::error::Error>> {
     info!("Running MQTT Discovery");
