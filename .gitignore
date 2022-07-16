@@ -40,6 +40,6 @@ tags
 
 # End of https://www.toptal.com/developers/gitignore/api/vim,rust
 
-debian/config.yaml
 config.yaml
 .idea
+.cargo

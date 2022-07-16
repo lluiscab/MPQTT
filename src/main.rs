@@ -85,14 +85,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(stream) => stream,
         Err(err) => {
             // Handle error opening inverter
-            publish_error(&mqtt_client, &settings.mqtt, err.to_string()).await?; // wrap in loop to retry publish on fails
+            // wrap in loop to retry publish on fails
+            publish_error(&mqtt_client, &settings.mqtt, err.to_string()).await?;
             error!("Could not open inverter communication {}", err);
             todo!("implement retrying on file not found or couldn't open with warn! before error!");
         }
     };
 
     // Clear previous errors
-    clear_error(&mqtt_client, &settings.mqtt).await?; // wrap in loop to retry publish on fails
+    // wrap in loop to retry publish on fails
+    clear_error(&mqtt_client, &settings.mqtt).await?;
 
     // Create inverter instance
     let mut inverter = Inverter::from_stream(stream);
@@ -108,12 +110,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Update loop
     loop {
-        let upd = update(&mut inverter, &mqtt_client, &settings).await;
-        if let Err(error) = upd {
-            publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
-            error!("Error publishing error: {}", error);
-        } else {
-            clear_error(&mqtt_client, &settings.mqtt).await?;
+        match update(&mut inverter, &mqtt_client, &settings).await {
+            Err(error) => {
+                publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
+                error!("Published error: {}", error);
+                // hopefully this can help it sort itself out on errors
+                // before going straight back into the next update
+                sleep(Duration::from_secs(settings.error_delay));
+            }
+            Ok(()) => match clear_error(&mqtt_client, &settings.mqtt).await {
+                Ok(()) => (),
+                Err(error) => {
+                    error!("Failed to clear error: {}", error)
+                }
+            },
         }
     }
 }
@@ -154,6 +164,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             // spare the connection some bandwidth in general use
             let qpgs0 = inverter.execute::<QPGS0>(()).await?;
             publish_update(&mqtt_client, &settings.mqtt, "qpgs0", serde_json::to_string(&qpgs0)?).await?;
+            sleep(Duration::from_secs(2));
         }
         // main update loop for phocos
         let qpgs1 = inverter.execute::<QPGS1>(()).await?;
@@ -165,7 +176,8 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             let qpigs = inverter.execute::<QPIGS>(()).await?;
             publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
         }
-        inner_time = inner_start.elapsed().as_millis(); // calculate average for this for the stats sensor
+        // calculate average for this for the stats sensor
+        inner_time = inner_start.elapsed().as_millis();
         info!("Partial update took {}ms", inner_time);
         sleep(Duration::from_secs(settings.inner_delay));
     }
