@@ -21,6 +21,7 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
+use serde_derive::Serialize;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
@@ -79,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run MQTT Discovery
     run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
 
-    // Open inverter tty device - 
+    // Open inverter tty device -
     // TODO wrap open call in for loop with timeout and a break on success
     let stream = match raw_open(settings.inverter.path.clone()) {
         Ok(stream) => stream,
@@ -180,7 +181,8 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
         let inner_time = inner_start.elapsed().as_millis();
         info!("Partial update took {}ms", inner_time);
         // inner_loop_duration can essentially be our heartbeat
-        publish_update(&mqtt_client, &settings.mqtt, "stats/inner_loop_duration", inner_time.to_string()).await?;
+        let inner_stats = Stats { update_duration: inner_time };
+        publish_update(&mqtt_client, &settings.mqtt, "inner_stats", serde_json::to_string(&inner_stats)?).await?;
         sleep(Duration::from_secs(settings.inner_delay));
     }
 
@@ -200,7 +202,8 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // Report update completed
     let outer_time = outer_start.elapsed().as_millis();
     info!("Full update took {}ms", outer_time);
-    publish_update(&mqtt_client, &settings.mqtt, "stats/outer_loop_duration", outer_time.to_string()).await?;
+    let outer_stats = Stats { update_duration: outer_time };
+    publish_update(&mqtt_client, &settings.mqtt, "outer_stats", serde_json::to_string(&outer_stats)?).await?;
     sleep(Duration::from_secs(settings.outer_delay));
     Ok(())
 }
@@ -210,7 +213,7 @@ async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: 
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
     // TODO add some retry logic and error handling
-    mqtt_client.publish(&msg).await?; 
+    mqtt_client.publish(&msg).await?;
     Ok(())
 }
 
@@ -238,4 +241,9 @@ fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
 
     let std_file = unsafe { std::fs::File::from_raw_fd(fd) };
     Ok(File::from_std(std_file))
+}
+
+#[derive(Serialize, Debug)]
+struct Stats {
+    update_duration: u128,
 }

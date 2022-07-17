@@ -11,8 +11,8 @@ pub async fn run_mqtt_discovery(client: &Client, cfg: &MqttSettings) -> Result<(
     register_error_sensor(client, cfg).await?;
 
     // Register stats sensors
-    register_sensor(client, cfg, "stats", "inner_update_duration", "Last Inner Update Duration", Some("ms".to_string()), "clock").await?;
-    register_sensor(client, cfg, "stats", "outer_update_duration", "Last Outer Update Duration", Some("ms".to_string()), "clock").await?;
+    register_sensor(client, cfg, "inner_stats", "update_duration", "Last Inner Update Duration", Some("ms".to_string()), "clock").await?;
+    register_sensor(client, cfg, "outer_stats", "update_duration", "Last Outer Update Duration", Some("ms".to_string()), "clock").await?;
 
     // Register QID Response
     register_sensor(client, cfg, "qid", "serial_number", "Serial number", None, "slot-machine").await?;
@@ -238,7 +238,7 @@ async fn register_sensor(client: &Client, cfg: &MqttSettings, command: &str, id:
         Some(_) => Some(String::from("measurement")),
         None => None,
     };
-
+    // device_class and state_class enable long term statistics in home assistant
     let device_class = match unit {
         Some(ref unit) => match unit.as_str() {
             "Vac" | "Vdc" | "V" => Some(String::from("voltage")),
