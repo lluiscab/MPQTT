@@ -21,7 +21,6 @@ use masterpower_api::inverter::Inverter;
 use libc::{open, O_RDWR};
 use log::{debug, error, info};
 use mqtt_async_client::client::{Client as MQTTClient, KeepAlive, Publish as PublishOpts, QoS};
-use serde_derive::Serialize;
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::FromRawFd;
 use std::path::Path;
@@ -158,7 +157,6 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // Start update
     debug!("Starting new update");
     let outer_start = Instant::now();
-    let mut inner_time: u128 = 0;
     for _ in 0..settings.inner_iterations {
         let inner_start = Instant::now();
         if settings.debug {
@@ -178,8 +176,11 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
         }
         // TODO calculate average for this for the stats sensor
-        inner_time = inner_start.elapsed().as_millis();
+        // ^ only relevant if we are using a singular "StatsSensor"
+        let inner_time = inner_start.elapsed().as_millis();
         info!("Partial update took {}ms", inner_time);
+        // inner_loop_duration can essentially be our heartbeat
+        publish_update(&mqtt_client, &settings.mqtt, "stats/inner_loop_duration", inner_time.to_string()).await?;
         sleep(Duration::from_secs(settings.inner_delay));
     }
 
@@ -199,11 +200,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     // Report update completed
     let outer_time = outer_start.elapsed().as_millis();
     info!("Full update took {}ms", outer_time);
-    let stats = StatsSensor {
-        outer_update_duration: outer_time,
-        inner_update_duration: inner_time,
-    };
-    publish_update(&mqtt_client, &settings.mqtt, "stats", serde_json::to_string(&stats)?).await?;
+    publish_update(&mqtt_client, &settings.mqtt, "stats/outer_loop_duration", outer_time.to_string()).await?;
     sleep(Duration::from_secs(settings.outer_delay));
     Ok(())
 }
@@ -241,10 +238,4 @@ fn raw_open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
 
     let std_file = unsafe { std::fs::File::from_raw_fd(fd) };
     Ok(File::from_std(std_file))
-}
-
-#[derive(Serialize, Debug)]
-struct StatsSensor {
-    outer_update_duration: u128,
-    inner_update_duration: u128,
 }
