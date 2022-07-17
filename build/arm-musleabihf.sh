@@ -1,3 +1,4 @@
+#!/bin/bash
 # https://github.com/mmstick/cargo-deb/issues/99
 
 echo "Installing cargo-deb"

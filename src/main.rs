@@ -212,16 +212,25 @@ async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: 
     let mut msg = PublishOpts::new(format!("{}/{}", mqtt.topic, command).to_string(), Vec::from(value));
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
-    // TODO add some retry logic and error handling
-    mqtt_client.publish(&msg).await?;
+    for _ in 0..5 {
+        match mqtt_client.publish(&msg).await {
+            Ok(()) => break,
+            Err(pub_error) => error!("Error publishing update for {}: {}", command, pub_error),
+        };
+    }
     Ok(())
 }
 
 async fn publish_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings, error: String) -> Result<(), Box<dyn std::error::Error>> {
-    let mut msg = PublishOpts::new(format!("{}/error", mqtt.topic).to_string(), Vec::from(error));
+    let mut msg = PublishOpts::new(format!("{}/error", mqtt.topic).to_string(), Vec::from(error.clone()));
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
-    mqtt_client.publish(&msg).await?;
+    for _ in 0..5 {
+        match mqtt_client.publish(&msg).await {
+            Ok(()) => break,
+            Err(pub_error) => error!("Error publishing error: {} - {}", pub_error, error),
+        };
+    }
     Ok(())
 }
 
@@ -229,7 +238,12 @@ async fn clear_error(mqtt_client: &MQTTClient, mqtt: &MqttSettings) -> Result<()
     let mut msg = PublishOpts::new(format!("{}/error", mqtt.topic).to_string(), "".to_string().as_bytes().to_vec());
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
-    mqtt_client.publish(&msg).await?;
+    for _ in 0..5 {
+        match mqtt_client.publish(&msg).await {
+            Ok(()) => break,
+            Err(pub_error) => error!("Error clearing error: {}", pub_error),
+        };
+    }
     Ok(())
 }
 
