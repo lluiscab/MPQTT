@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         std::env::set_var("RUST_LOG", "error,mpqtt=info,masterpower_api=info");
     }
-    pretty_env_logger::init_timed(); // TODO work out how to implement with init_timed
+    pretty_env_logger::init_timed();
 
     // Create MQTT Connection
     info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
@@ -80,12 +80,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run MQTT Discovery
     run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
 
-    // Open inverter tty device - wrap open call in for loop with timeout and a break on success
+    // Open inverter tty device - 
+    // TODO wrap open call in for loop with timeout and a break on success
     let stream = match raw_open(settings.inverter.path.clone()) {
         Ok(stream) => stream,
         Err(err) => {
             // Handle error opening inverter
-            // wrap in loop to retry publish on fails
+            // TODO wrap in loop to retry publish on fails
             publish_error(&mqtt_client, &settings.mqtt, err.to_string()).await?;
             error!("Could not open inverter communication {}", err);
             todo!("implement retrying on file not found or couldn't open with warn! before error!");
@@ -93,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Clear previous errors
-    // wrap in loop to retry publish on fails
+    // TODO wrap in loop to retry publish on fails
     clear_error(&mqtt_client, &settings.mqtt).await?;
 
     // Create inverter instance
@@ -176,7 +177,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             let qpigs = inverter.execute::<QPIGS>(()).await?;
             publish_update(&mqtt_client, &settings.mqtt, "qpigs", serde_json::to_string(&qpigs)?).await?;
         }
-        // calculate average for this for the stats sensor
+        // TODO calculate average for this for the stats sensor
         inner_time = inner_start.elapsed().as_millis();
         info!("Partial update took {}ms", inner_time);
         sleep(Duration::from_secs(settings.inner_delay));
@@ -187,7 +188,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
     publish_update(&mqtt_client, &settings.mqtt, "qmod", serde_json::to_string(&qmod)?).await?;
     // QPIRI    - Device Rating Information Inquiry
     if settings.mode != String::from("phocos") {
-        // I think it could be implemented for phocos, just needs some work
+        // TODO I think it could be implemented for phocos, just needs some work
         let qpiri = inverter.execute::<QPIRI>(()).await?;
         publish_update(&mqtt_client, &settings.mqtt, "qpiri", serde_json::to_string(&qpiri)?).await?;
     }
@@ -211,7 +212,8 @@ async fn publish_update(mqtt_client: &MQTTClient, mqtt: &MqttSettings, command: 
     let mut msg = PublishOpts::new(format!("{}/{}", mqtt.topic, command).to_string(), Vec::from(value));
     msg.set_qos(QoS::AtLeastOnce);
     msg.set_retain(false);
-    mqtt_client.publish(&msg).await?;
+    // TODO add some retry logic and error handling
+    mqtt_client.publish(&msg).await?; 
     Ok(())
 }
 
