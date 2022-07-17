@@ -4,7 +4,7 @@ MPQTT is a linux program used to extract data from Voltronic / Axpert / MasterPo
 
 ## Installation
 
-Download and instll the latest [release](https://github.com/lluiscab/MPQTT/releases).
+Download and install the latest [release](https://github.com/lluiscab/MPQTT/releases).
 
 ```bash
 sudo dpkg -i
@@ -26,3 +26,20 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+## Troubleshooting
+
+### Getting stuck in loop cycle
+- via python:
+    ```
+    import serial
+    ser = serial.Serial("/dev/ttyUSB0", 2400)
+    ser.read()
+    ```
+    ctrl+c
+- reboot: `sudo shutdown -r now`
+- cycle power on inverter display unit
+- use something like [wolffserial](https://crates.io/crates/wolffserial) to read for a bit then retry
+    ```
+    wolffserial watch /dev/ttyUSB0 2400
+    ```
