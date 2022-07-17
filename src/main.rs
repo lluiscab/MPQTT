@@ -179,7 +179,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
         // TODO calculate average for this for the stats sensor
         // ^ only relevant if we are using a singular "StatsSensor"
         let inner_time = inner_start.elapsed().as_millis();
-        info!("Partial update took {}ms", inner_time);
+        info!("Partial update took {}ms - sleeping for {}s", inner_time, settings.inner_delay);
         // inner_loop_duration can essentially be our heartbeat
         let inner_stats = Stats { update_duration: inner_time };
         publish_update(&mqtt_client, &settings.mqtt, "inner_stats", serde_json::to_string(&inner_stats)?).await?;
@@ -201,7 +201,7 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
 
     // Report update completed
     let outer_time = outer_start.elapsed().as_millis();
-    info!("Full update took {}ms", outer_time);
+    info!("Full update took {}ms - sleeping for {}s", outer_time, settings.outer_delay);
     let outer_stats = Stats { update_duration: outer_time };
     publish_update(&mqtt_client, &settings.mqtt, "outer_stats", serde_json::to_string(&outer_stats)?).await?;
     sleep(Duration::from_secs(settings.outer_delay));

@@ -366,7 +366,7 @@ checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 [[package]]
 name = "masterpower-api"
 version = "0.1.0"
-source = "git+https://github.com/wolffshots/masterpower-api?branch=dev#6a9e16b453ba023cd9094dc4bc0f4ff578ccd2ce"
+source = "git+https://github.com/wolffshots/masterpower-api?branch=dev#30594fc6815a2776c8e4b5b3cb54b4eae31117b2"
 dependencies = [
  "bytes 0.5.6",
  "crc-any",
