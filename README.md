@@ -1,6 +1,6 @@
 # MPQTT
 
-MPQTT is a linux program used to extract data from Voltronic / Axpert / MasterPower inverters and sending it to MQTT for use in Home Assistant
+MPQTT is a linux program used to extract data from Voltronic / Axpert / MasterPower / Phocos inverters and sending it to MQTT for use in Home Assistant
 
 ## Installation
 
