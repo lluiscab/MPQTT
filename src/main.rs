@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         std::env::set_var("RUST_LOG", "error,mpqtt=info,masterpower_api=info");
     }
-    pretty_env_logger::init();
+    pretty_env_logger::init_timed(); // TODO work out how to implement with init_timed
 
     // Create MQTT Connection
     info!("Connecting to MQTT Broker at: {}:{}", settings.mqtt.host, settings.mqtt.port);
@@ -63,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_client_id(Option::from(settings.mqtt.client_id.clone()))
         .set_connect_retry_delay(Duration::from_secs(1))
         .set_keep_alive(KeepAlive::from_secs(5))
-        .set_operation_timeout(Duration::from_secs(5))
+        .set_operation_timeout(Duration::from_secs(10))
         .set_automatic_connect(true)
         .build()
     {
