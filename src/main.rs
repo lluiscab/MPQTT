@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Connected to MQTT Broker");
 
     // Run MQTT Discovery
-    run_mqtt_discovery(&mqtt_client, &settings.mqtt).await?;
+    run_mqtt_discovery(&mqtt_client, &settings.mqtt, settings.inverter_count, &settings.mode).await?;
 
     // Open inverter tty device -
     // TODO wrap open call in for loop with timeout and a break on success
@@ -114,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match update(&mut inverter, &mqtt_client, &settings).await {
             Err(error) => {
                 publish_error(&mqtt_client, &settings.mqtt, error.to_string()).await?;
-                error!("Published error: {}", error);
+                error!("Published error: {} - sleeping for {}", error, settings.error_delay);
                 // hopefully this can help it sort itself out on errors
                 // before going straight back into the next update
                 sleep(Duration::from_secs(settings.error_delay));
@@ -167,10 +167,28 @@ async fn update(inverter: &mut Inverter<File>, mqtt_client: &MQTTClient, setting
             sleep(Duration::from_secs(2));
         }
         // main update loop for phocos
-        let qpgs1 = inverter.execute::<QPGS1>(()).await?;
-        let qpgs2 = inverter.execute::<QPGS2>(()).await?;
-        publish_update(&mqtt_client, &settings.mqtt, "qpgs1", serde_json::to_string(&qpgs1)?).await?;
-        publish_update(&mqtt_client, &settings.mqtt, "qpgs2", serde_json::to_string(&qpgs2)?).await?;
+        if settings.mode == String::from("phocos") {
+            for index in 0..settings.inverter_count {
+                let qpgs = match index {
+                    0 => {
+                        if settings.debug {
+                            inverter.execute::<QPGS0>(()).await?;
+                        }
+                    }
+                    1 => {
+                        inverter.execute::<QPGS1>(()).await?;
+                    }
+                    2 => {
+                        inverter.execute::<QPGS2>(()).await?;
+                    }
+                    _ => unimplemented!(),
+                };
+                if (settings.debug && index == 0) || index != 0 {
+                    publish_update(&mqtt_client, &settings.mqtt, &format!("qpgs{}", index), serde_json::to_string(&qpgs)?).await?;
+                }
+            }
+        }
+
         // QPIGS    - Device general status parameters inquiry
         if settings.mode != String::from("phocos") {
             let qpigs = inverter.execute::<QPIGS>(()).await?;

@@ -3,6 +3,7 @@ outer_delay: 10
 inner_delay: 30
 error_delay: 30
 inner_iterations: 10
+inverter_count: 1
 mode: phocos
 
 inverter:
